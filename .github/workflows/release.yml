@@ -3,18 +3,37 @@ name: Quorum reporting docker push
 on:
   push:
     branches:
-      - master
+      - 'master'
     tags:
-      - v*
-
+      - 'v*'
 jobs:
-  publish-docker:
-    name: Publish Docker Image
+  push:
+    name: 'Build and Push'
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v2
-      - name: 'Build and publish to Docker Hub'
+      - name: 'Setup environment'
+        id: setup
+        run: |
+          target="Docker Hub"
+          if [ "${{ secrets.DOCKER_REPO }}" == "" ]; then
+            target="Github Packages"
+          fi
+          echo "::set-output name=target::$target"
+          echo "::set-output name=repo::$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
+      - name: 'Build and push to Github Packages'
+        if: steps.setup.outputs.target == 'Github Packages'
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: docker.pkg.github.com
+          repository: ${{ steps.setup.outputs.repo }}/acctests
+          tag_with_ref: true
+          add_git_labels: true
+      - name: 'Build and push to Docker Hub'
+        if: steps.setup.outputs.target == 'Docker Hub'
         uses: docker/build-push-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
