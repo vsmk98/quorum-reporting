@@ -49,7 +49,6 @@ jobs:
           tags: ${{ steps.tag.outputs.VERSION }}
           add_git_labels: true
       - name: 'Build and push to Docker Hub'
-        echo ${{ steps.tag.outputs.VERSION }}
         if: steps.setup.outputs.target == 'Docker Hub'
         uses: docker/build-push-action@v1
         with:
