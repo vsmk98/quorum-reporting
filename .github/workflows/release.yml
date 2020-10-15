@@ -27,6 +27,17 @@ jobs:
           fi
           echo "::set-output name=target::$target"
           echo "::set-output name=repo::$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
+      - name: 'Define image tag'
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            target="latest"
+          else
+            REF=${{ github.ref }}
+            target=$(echo $REF | sed 's/refs\/tags\/v//g')
+          fi
+          echo "::set-output name=VERSION::$target"
       - name: 'Build and push to Github Packages'
         if: steps.setup.outputs.target == 'Github Packages'
         uses: docker/build-push-action@v1
@@ -35,16 +46,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
           repository: ${{ steps.setup.outputs.repo }}/acctests
-          tags: ${{ steps.extract.outputs.image_tag }}
+          tags: ${{ steps.tag.outputs.VERSION }}
           add_git_labels: true
       - name: 'Build and push to Docker Hub'
+        echo ${{ steps.tag.outputs.VERSION }}
         if: steps.setup.outputs.target == 'Docker Hub'
         uses: docker/build-push-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
           repository: ${{ secrets.DOCKER_REPO }}
-          tags: ${{ steps.extract.outputs.image_tag }}
+          tags: ${{ steps.tag.outputs.VERSION }}
           add_git_labels: true
       - name: 'Notify'
         if: always()
