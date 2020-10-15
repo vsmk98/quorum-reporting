@@ -13,6 +13,11 @@ jobs:
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v2
+      - name: 'Extract Docker Image Tag'
+        id: extract
+        run: |
+          REF=${{ github.ref }}
+          echo ::set-output name=image_tag::$(echo $REF | sed 's/refs\/tags\/v//g')
       - name: 'Setup environment'
         id: setup
         run: |
@@ -30,7 +35,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
           repository: ${{ steps.setup.outputs.repo }}/acctests
-          tag_with_ref: true
+          tags: ${{ steps.extract.outputs.image_tag }}
           add_git_labels: true
       - name: 'Build and push to Docker Hub'
         if: steps.setup.outputs.target == 'Docker Hub'
@@ -39,7 +44,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
           repository: ${{ secrets.DOCKER_REPO }}
-          tag_with_ref: true
+          tags: ${{ steps.extract.outputs.image_tag }}
           add_git_labels: true
       - name: 'Notify'
         if: always()
